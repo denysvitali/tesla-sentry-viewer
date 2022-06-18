@@ -1,0 +1,6 @@
+/videos
+/output
+/output-*
+/build
+/Dockerfile
+.idea

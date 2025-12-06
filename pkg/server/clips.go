@@ -2,16 +2,18 @@ package server
 
 import (
 	"fmt"
-	sentry "github.com/denysvitali/tesla-sentry-viewer/pkg"
-	"github.com/gin-gonic/gin"
 	"net/http"
 	"os"
 	"path"
 	"strings"
+
+	"github.com/denysvitali/tesla-sentry-viewer/pkg/clip"
+	"github.com/denysvitali/tesla-sentry-viewer/pkg/event"
+	"github.com/gin-gonic/gin"
 )
 
 type ClipResponse struct {
-	Event     sentry.Event        `json:"event"`
+	Event     event.Event         `json:"event"`
 	ClipFiles map[string][]string `json:"clipFiles"`
 }
 
@@ -21,6 +23,7 @@ func (s *Server) getClip(c *gin.Context) {
 		s.logger.Warnf("invalid clip id provided: %s", clipId)
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": "invalid clip id",
+			"code":  "INVALID_CLIP_ID",
 		})
 		return
 	}
@@ -45,7 +48,7 @@ func (s *Server) getClip(c *gin.Context) {
 	}
 
 	// Get event
-	event, err := sentry.ParseEvent(clipPath)
+	evt, err := event.ParseEvent(clipPath)
 	if err != nil {
 		s.logger.Warnf("unable to parse clip directory: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{
@@ -63,7 +66,7 @@ func (s *Server) getClip(c *gin.Context) {
 		return
 	}
 
-	filesByType, err := sentry.FilesByType("", dirEntries)
+	filesByType, err := clip.FilesByType("", dirEntries)
 	if err != nil {
 		s.logger.Warnf("unable to get files by type: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{
@@ -73,7 +76,7 @@ func (s *Server) getClip(c *gin.Context) {
 	}
 
 	clipResponse := ClipResponse{
-		Event:     *event,
+		Event:     *evt,
 		ClipFiles: filesByType,
 	}
 
@@ -84,8 +87,10 @@ func (s *Server) getClipFile(c *gin.Context) {
 	clipId := c.Param("clip_id")
 	fileName := c.Param("file_name")
 	if !strings.HasSuffix(fileName, ".mp4") {
+		s.logger.Warnf("invalid file type requested: %s", fileName)
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": "the clip file must be an .mp4",
+			"code":  "INVALID_FILE_TYPE",
 		})
 		return
 	}
@@ -109,6 +114,14 @@ func (s *Server) getClipFile(c *gin.Context) {
 
 func (s *Server) getClipThumb(c *gin.Context) {
 	clipId := c.Param("clip_id")
+	if !directoryRegex.MatchString(clipId) {
+		s.logger.Warnf("invalid clip id provided for thumb: %s", clipId)
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "invalid clip id",
+			"code":  "INVALID_CLIP_ID",
+		})
+		return
+	}
 
 	filePath := path.Join(s.dir, clipId, "thumb.png")
 	fileInfo, err := os.Stat(filePath)

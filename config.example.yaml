@@ -1,0 +1,27 @@
+# Tesla Sentry Viewer Configuration
+
+# Debug settings
+debug: false
+
+# File paths
+output: "output"
+ffmpeg: "ffmpeg"
+
+# Server settings
+server:
+  listen: "127.0.0.1:8150"
+  max_workers: 4
+
+# Logging settings
+log_level: "info"
+
+# Performance settings
+concurrency:
+  max_parallel_processes: 2
+  timeout_seconds: 300
+
+# Security settings
+security:
+  allow_origins: ["*"]
+  enable_cors: true
+  max_upload_size: "10MB"

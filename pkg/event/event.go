@@ -26,7 +26,6 @@ func ParseEvent(directory string) (*Event, error) {
 	defer f.Close()
 
 	dec := json.NewDecoder(f)
-	dec.DisallowUnknownFields()
 	var event Event
 	err = dec.Decode(&event)
 	if err != nil {
